@@ -99,7 +99,7 @@ Run the deterministic version matrix on a V100:
 tools/run_verifier_version_matrix.sh /tmp/tilelang-verifier-matrix
 ```
 
-The command compares TileLang 0.1.8 and 0.1.9 outputs. It also exports CUDA source, PTX, SASS, and SHA-256 manifests.
+The command compares TileLang 0.1.8 and 0.1.9 outputs and exports CUDA source, PTX, SASS, and SHA-256 manifests. TileLang 0.1.9 has a reproducible SM70 BF16-header compilation failure; the matrix records that vanilla failure, applies a narrowly identified header fallback for comparison only, and verifies the patched 0.1.9 output against unmodified 0.1.8. Package installs remain pinned below 0.1.9 until upstream fixes the SM70 header.
 
 ---
 
@@ -176,7 +176,7 @@ Numbers below are from a V100-SXM2 (vs `flash_attn_v100`, Tesla T4 kernel built 
 ### Dense forward (ms, lower is better)
 
 | Problem | TileLang | Reference | Speedup |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | B=1 H=16 512×512 D=64 | — | — | — |
 | B=1 H=16 1024×1024 D=64 | — | — | — |
 | B=1 H=16 2048×2048 D=64 | — | — | — |

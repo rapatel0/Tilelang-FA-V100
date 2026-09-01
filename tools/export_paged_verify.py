@@ -107,6 +107,7 @@ def main() -> None:
         "source_commit": source_commit,
         "source_sha256": _sha256(source),
         "tilelang_version": getattr(tilelang, "__version__", "unknown"),
+        "tilelang_runtime_patch": os.environ.get("TILELANG_RUNTIME_PATCH"),
         "cuda_toolchain": _command("nvcc", "--version"),
         "shape": {
             "batch": 1,
