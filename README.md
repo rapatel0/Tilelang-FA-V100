@@ -99,7 +99,7 @@ Run the deterministic version matrix on a V100:
 tools/run_verifier_version_matrix.sh /tmp/tilelang-verifier-matrix
 ```
 
-The command compares TileLang 0.1.8 and 0.1.9 outputs. It also exports CUDA source, PTX, SASS, libraries, and SHA-256 manifests.
+The command compares TileLang 0.1.8 and 0.1.9 outputs. It also exports CUDA source, PTX, SASS, and SHA-256 manifests.
 
 ---
 

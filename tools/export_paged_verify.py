@@ -26,7 +26,9 @@ def _sha256(path: Path) -> str:
 
 def _command(*args: str) -> str:
     try:
-        return subprocess.check_output(args, text=True, stderr=subprocess.STDOUT).strip()
+        return subprocess.check_output(
+            args, text=True, stderr=subprocess.STDOUT
+        ).strip()
     except (OSError, subprocess.CalledProcessError) as error:
         return f"unavailable: {error}"
 
@@ -47,7 +49,6 @@ def _export(kernel, stem: Path) -> list[Path]:
         stem.with_name(stem.name + "_host.cc"),
         stem.with_suffix(".ptx"),
         stem.with_suffix(".sass"),
-        stem.with_suffix(".so"),
     ]
     kernel.export_sources(
         kernel_path=str(outputs[0]),
@@ -55,14 +56,15 @@ def _export(kernel, stem: Path) -> list[Path]:
     )
     kernel.export_ptx(str(outputs[2]))
     kernel.export_sass(str(outputs[3]))
-    kernel.export_library(str(outputs[4]))
     return outputs
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--causal", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument(
+        "--causal", action=argparse.BooleanOptionalAction, default=False
+    )
     parser.add_argument("--num-pages", type=int, default=1024)
     parser.add_argument("--max-blocks", type=int, default=1024)
     parser.add_argument(
