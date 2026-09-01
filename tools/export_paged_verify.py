@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -28,6 +29,16 @@ def _command(*args: str) -> str:
         return subprocess.check_output(args, text=True, stderr=subprocess.STDOUT).strip()
     except (OSError, subprocess.CalledProcessError) as error:
         return f"unavailable: {error}"
+
+
+def _source_repository(repository: Path) -> str:
+    branch = _command("git", "-C", str(repository), "rev-parse", "--abbrev-ref", "HEAD")
+    remote = _command(
+        "git", "-C", str(repository), "config", "--get", f"branch.{branch}.remote"
+    )
+    if remote.startswith("unavailable:") or not remote:
+        remote = "origin"
+    return _command("git", "-C", str(repository), "remote", "get-url", remote)
 
 
 def _export(kernel, stem: Path) -> list[Path]:
@@ -54,6 +65,12 @@ def main() -> None:
     parser.add_argument("--causal", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--num-pages", type=int, default=1024)
     parser.add_argument("--max-blocks", type=int, default=1024)
+    parser.add_argument(
+        "--source-repository", default=os.environ.get("TILELANG_FA_SOURCE_REPOSITORY")
+    )
+    parser.add_argument(
+        "--source-commit", default=os.environ.get("TILELANG_FA_SOURCE_COMMIT")
+    )
     args = parser.parse_args()
 
     args.output.mkdir(parents=True, exist_ok=True)
@@ -74,10 +91,18 @@ def main() -> None:
 
     repository = Path(__file__).resolve().parents[1]
     source = repository / "tilelang_fa_v100" / "_kernels_paged_verify.py"
+    source_repository = args.source_repository or _source_repository(repository)
+    source_commit = args.source_commit or _command(
+        "git", "-C", str(repository), "rev-parse", "HEAD"
+    )
+    if source_repository.startswith("unavailable:"):
+        raise RuntimeError("source repository is unavailable; pass --source-repository")
+    if source_commit.startswith("unavailable:"):
+        raise RuntimeError("source commit is unavailable; pass --source-commit")
     manifest = {
         "schema": 1,
-        "source_repository": _command("git", "-C", str(repository), "remote", "get-url", "origin"),
-        "source_commit": _command("git", "-C", str(repository), "rev-parse", "HEAD"),
+        "source_repository": source_repository,
+        "source_commit": source_commit,
         "source_sha256": _sha256(source),
         "tilelang_version": getattr(tilelang, "__version__", "unknown"),
         "cuda_toolchain": _command("nvcc", "--version"),
