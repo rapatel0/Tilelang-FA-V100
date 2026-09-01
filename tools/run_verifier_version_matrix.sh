@@ -14,10 +14,13 @@ if [ -z "${TILELANG_FA_SOURCE_REPOSITORY:-}" ]; then
     TILELANG_FA_SOURCE_REPOSITORY="$(git -C "${ROOT}" remote get-url "${remote}")"
 fi
 export TILELANG_FA_SOURCE_COMMIT TILELANG_FA_SOURCE_REPOSITORY
+BASE_SITE_PACKAGES="$("${PYTHON_BIN}" -c 'import site; print(site.getsitepackages()[0])')"
 for version in 0.1.8 0.1.9; do
     env_dir="${OUTPUT}/venv-${version}"
     result_dir="${OUTPUT}/tilelang-${version}"
-    "${PYTHON_BIN}" -m venv --system-site-packages "${env_dir}"
+    "${PYTHON_BIN}" -m venv "${env_dir}"
+    env_site_packages="$("${env_dir}/bin/python" -c 'import site; print(site.getsitepackages()[0])')"
+    printf '%s\n' "${BASE_SITE_PACKAGES}" >"${env_site_packages}/image-base.pth"
     "${env_dir}/bin/pip" install --disable-pip-version-check --no-deps --force-reinstall "tilelang==${version}"
     "${env_dir}/bin/pip" install --disable-pip-version-check --no-deps -e "${ROOT}"
     "${env_dir}/bin/python" "${ROOT}/tools/run_paged_verify_case.py" --output "${result_dir}/cases"
