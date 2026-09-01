@@ -20,6 +20,7 @@ export LD_LIBRARY_PATH="${Z3_LIBRARY_DIR}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 for version in 0.1.8 0.1.9; do
     env_dir="${OUTPUT}/venv-${version}"
     result_dir="${OUTPUT}/tilelang-${version}"
+    mkdir -p "${result_dir}"
     "${PYTHON_BIN}" -m venv "${env_dir}"
     env_site_packages="$("${env_dir}/bin/python" -c 'import site; print(site.getsitepackages()[0])')"
     printf '%s\n' "${BASE_SITE_PACKAGES}" >"${env_site_packages}/image-base.pth"
@@ -35,12 +36,13 @@ for version in 0.1.8 0.1.9; do
         test "${vanilla_rc}" -ne 0
         grep -q 'no suitable user-defined conversion from "__nv_bfloat16" to "__half"' \
             "${result_dir}/vanilla-sm70.log"
-        common_header="$("${env_dir}/bin/python" - <<'PY'
+        common_header="$(
+            "${env_dir}/bin/python" - <<'PY'
 import pathlib
 import tilelang
 print(pathlib.Path(tilelang.__file__).parent / "src/tl_templates/cuda/common.h")
 PY
-)"
+        )"
         "${env_dir}/bin/python" - "${common_header}" <<'PY'
 import pathlib
 import sys
