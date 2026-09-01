@@ -16,6 +16,7 @@ The API is a **drop-in replacement** for `flash_attn_v100` (`flash-attention-v10
 
 - **Dense FlashAttention forward + backward** — full training loop with `torch.autograd.Function`
 - **Paged FlashAttention forward** — 4D page-by-page KV cache loading for vLLM integration
+- **Grouped split-KV verifier** — exact B1/Q8/H8/HKV2/D128 speculative verification for SM70
 - **Causal masking** — diagonal-length-aware for non-square Q/KV
 - **GQA / MQA support** — via the paged kernel (`num_kv_heads < num_heads`)
 - **Autotuned tile configs** — `@tilelang.autotune` sweeps `block_M`, `block_N`, `threads` within V100's 96 KB shared memory budget
@@ -79,6 +80,27 @@ pkl = torch.full((batch,), 0, dtype=torch.int32, device='cuda')
 out, softmax_lse = tilelang_paged_forward(qf, kc, vc, bt, sl, qsl, pkl)
 ```
 
+### Grouped speculative verifier
+
+```python
+from tilelang_fa_v100 import tilelang_verify_forward
+
+out = tilelang_verify_forward(
+    q, k_cache, v_cache, block_table, seq_lens,
+    query_start_loc, prefix_kv_lens, causal=False,
+)
+```
+
+The verifier supports FP16 paged K/V, page size 16, at most 16 query rows per sequence, and integral GQA ratios.
+
+Run the deterministic version matrix on a V100:
+
+```bash
+tools/run_verifier_version_matrix.sh /tmp/tilelang-verifier-matrix
+```
+
+The command compares TileLang 0.1.8 and 0.1.9 outputs. It also exports CUDA source, PTX, SASS, libraries, and SHA-256 manifests.
+
 ---
 
 ## API
@@ -100,6 +122,14 @@ tilelang_paged_forward(q, k_cache, v_cache, block_table, seq_lens,
 ```
 
 vLLM-compatible paged attention. Returns `(output, softmax_lse)`.
+
+```python
+tilelang_verify_forward(q, k_cache, v_cache, block_table, seq_lens,
+                        query_start_loc, prefix_kv_lens, out=None,
+                        softmax_scale=None, causal=False) -> torch.Tensor
+```
+
+Grouped split-KV verification for SM70. The output uses FP16 with FP32 QK, softmax, PV, and split-combine accumulation.
 
 `tilelang_flash_attn_gpu` is an alias for `tilelang_flash_attn_func`.
 
@@ -179,6 +209,8 @@ TileLang is a Python DSL that compiles tensor programs to CUDA kernels via TVM's
 Special thanks to the **TileLang team and community** for building an incredible DSL that makes GPU kernel development accessible and productive. This project would not exist without their work on the TileLang compiler, autotuning infrastructure, and SM70 support.
 
 Thanks also to the **FlashAttention authors** (Tri Dao et al.) for the algorithmic breakthroughs, and to the **AI-Bond / flash-attention-v100-ai-bond** project for providing a well-tested V100 reference implementation that guided our development.
+
+The grouped verifier derives from SGLang under Apache License 2.0. See `THIRD_PARTY_NOTICES.md` for source and revision details.
 
 ---
 

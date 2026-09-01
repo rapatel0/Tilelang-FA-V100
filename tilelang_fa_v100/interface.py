@@ -1,12 +1,14 @@
+# pyright: reportCallIssue=false
 """High-level FA2-compatible API for TileLang FlashAttention V100."""
 import math
-import torch
-import torch.nn.functional as F
 
-from ._kernels_forward import tilelang_forward, tilelang_forward_lse, kernel_forward_lse
+import torch
+
+from ._kernels_forward import tilelang_forward_lse
 from ._kernels_backward import tilelang_backward
-from ._paged_adapter import paged_forward as _paged_forward
 from ._decode_adapter import decode_forward as _decode_forward
+from ._paged_adapter import paged_forward as _paged_forward
+from ._verify_adapter import verify_forward as _verify_forward
 
 
 class FlashAttnTileLangVFunc(torch.autograd.Function):
@@ -15,7 +17,6 @@ class FlashAttnTileLangVFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, k, v, dropout_p, softmax_scale, causal, window_size,
                 softcap, alibi_slopes, deterministic, return_softmax):
-        layout = q.shape  # (B, M, H, D)
         q_ = q.permute(0, 2, 1, 3).contiguous()
         k_ = k.permute(0, 2, 1, 3).contiguous()
         v_ = v.permute(0, 2, 1, 3).contiguous()
@@ -99,6 +100,34 @@ def tilelang_paged_forward(q, k_cache, v_cache, block_table, seq_lens,
 
 
 tilelang_flash_attn_gpu = tilelang_flash_attn_func
+
+
+def tilelang_verify_forward(
+    q,
+    k_cache,
+    v_cache,
+    block_table,
+    seq_lens,
+    query_start_loc,
+    prefix_kv_lens,
+    *,
+    out=None,
+    softmax_scale=None,
+    causal=False,
+):
+    """Run the exact grouped split-KV verifier for SM70."""
+    return _verify_forward(
+        q,
+        k_cache,
+        v_cache,
+        block_table,
+        seq_lens,
+        query_start_loc,
+        prefix_kv_lens,
+        out=out,
+        softmax_scale=softmax_scale,
+        causal=causal,
+    )
 
 
 def tilelang_decode_forward(q, k_cache, v_cache, block_table, seq_lens,
