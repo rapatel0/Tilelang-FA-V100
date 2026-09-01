@@ -2,6 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUTPUT="${1:?usage: run_verifier_version_matrix.sh OUTPUT_DIR}"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 mkdir -p "${OUTPUT}"
 if [ -z "${TILELANG_FA_SOURCE_COMMIT:-}" ]; then
     TILELANG_FA_SOURCE_COMMIT="$(git -C "${ROOT}" rev-parse HEAD)"
@@ -16,14 +17,14 @@ export TILELANG_FA_SOURCE_COMMIT TILELANG_FA_SOURCE_REPOSITORY
 for version in 0.1.8 0.1.9; do
     env_dir="${OUTPUT}/venv-${version}"
     result_dir="${OUTPUT}/tilelang-${version}"
-    python3 -m venv --system-site-packages "${env_dir}"
+    "${PYTHON_BIN}" -m venv --system-site-packages "${env_dir}"
     "${env_dir}/bin/pip" install --disable-pip-version-check --no-deps --force-reinstall "tilelang==${version}"
     "${env_dir}/bin/pip" install --disable-pip-version-check --no-deps -e "${ROOT}"
     "${env_dir}/bin/python" "${ROOT}/tools/run_paged_verify_case.py" --output "${result_dir}/cases"
     "${env_dir}/bin/python" "${ROOT}/tools/export_paged_verify.py" \
         --output "${result_dir}/export" --no-causal --num-pages 1024 --max-blocks 1024
 done
-python3 - "${OUTPUT}" <<'PY'
+"${PYTHON_BIN}" - "${OUTPUT}" <<'PY'
 import hashlib
 import json
 import pathlib
