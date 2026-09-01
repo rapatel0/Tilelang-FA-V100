@@ -15,6 +15,8 @@ if [ -z "${TILELANG_FA_SOURCE_REPOSITORY:-}" ]; then
 fi
 export TILELANG_FA_SOURCE_COMMIT TILELANG_FA_SOURCE_REPOSITORY
 BASE_SITE_PACKAGES="$("${PYTHON_BIN}" -c 'import site; print(site.getsitepackages()[0])')"
+Z3_LIBRARY_DIR="$("${PYTHON_BIN}" -c 'import pathlib, z3; print(pathlib.Path(z3.__file__).parent / "lib")')"
+export LD_LIBRARY_PATH="${Z3_LIBRARY_DIR}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 for version in 0.1.8 0.1.9; do
     env_dir="${OUTPUT}/venv-${version}"
     result_dir="${OUTPUT}/tilelang-${version}"
